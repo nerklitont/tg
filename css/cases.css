@@ -1,0 +1,244 @@
+/* ===== Case Opening Roulette ===== */
+.case-opening {
+    margin-bottom: 24px;
+}
+
+.roulette-wrapper {
+    position: relative;
+    overflow: hidden;
+    height: 160px;
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+}
+
+.roulette-pointer {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+    z-index: 10;
+    box-shadow: 0 0 15px var(--accent-glow), 0 0 30px var(--accent-glow);
+}
+
+.roulette-pointer::before,
+.roulette-pointer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+}
+
+.roulette-pointer::before {
+    top: 0;
+    border-top: 12px solid var(--accent);
+}
+
+.roulette-pointer::after {
+    bottom: 0;
+    border-bottom: 12px solid var(--accent);
+}
+
+.roulette-strip {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: none;
+    will-change: transform;
+}
+
+.roulette-item {
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    position: relative;
+    border-right: 1px solid var(--border);
+}
+
+.roulette-item::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.roulette-item[data-rarity="consumer"]::before { background: var(--rarity-consumer); }
+.roulette-item[data-rarity="industrial"]::before { background: var(--rarity-industrial); }
+.roulette-item[data-rarity="milspec"]::before { background: var(--rarity-milspec); }
+.roulette-item[data-rarity="restricted"]::before { background: var(--rarity-restricted); }
+.roulette-item[data-rarity="classified"]::before { background: var(--rarity-classified); }
+.roulette-item[data-rarity="covert"]::before { background: var(--rarity-covert); }
+.roulette-item[data-rarity="gold"]::before { background: var(--rarity-gold); }
+
+.roulette-item-icon {
+    font-size: 40px;
+    opacity: 0.8;
+}
+
+.roulette-item-name {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.roulette-item-price {
+    font-size: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* ===== Case Result ===== */
+.case-result {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.result-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    opacity: 0.3;
+    filter: blur(60px);
+    pointer-events: none;
+}
+
+.result-skin {
+    margin-bottom: 24px;
+}
+
+.result-skin .skin-won {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: resultPop 0.5s ease;
+}
+
+.result-skin .skin-won-icon {
+    font-size: 80px;
+    margin-bottom: 8px;
+}
+
+.result-skin .skin-won-name {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.result-skin .skin-won-weapon {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.result-skin .skin-won-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+@keyframes resultPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.result-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.open-case-btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 18px;
+    padding: 16px;
+}
+
+/* ===== Case Modal ===== */
+.case-modal-content {
+    max-width: 700px;
+}
+
+.case-modal-content .case-contents {
+    margin-top: 20px;
+}
+
+.case-contents-title {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.case-contents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+}
+
+.case-contents-item {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: var(--transition);
+}
+
+.case-contents-item:hover {
+    border-color: var(--border-hover);
+}
+
+.case-contents-item .item-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+
+.case-contents-item .item-name {
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.case-contents-item .item-price {
+    font-size: 10px;
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+}

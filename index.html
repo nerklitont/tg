@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2 SKINS — Кейсы и Апгрейды</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/cases.css">
+    <link rel="stylesheet" href="css/upgrade.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <!-- Particles Background -->
+    <div id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="#" class="logo">
+                <i class="fas fa-crosshairs"></i>
+                <span>CS2<span class="accent">SKINS</span></span>
+            </a>
+            <nav class="nav">
+                <a href="#hero" class="nav-link active" data-section="hero">
+                    <i class="fas fa-home"></i> Главная
+                </a>
+                <a href="#cases" class="nav-link" data-section="cases">
+                    <i class="fas fa-box-open"></i> Кейсы
+                </a>
+                <a href="#upgrade" class="nav-link" data-section="upgrade">
+                    <i class="fas fa-arrow-up"></i> Апгрейд
+                </a>
+                <a href="#inventory" class="nav-link" data-section="inventory">
+                    <i class="fas fa-briefcase"></i> Инвентарь
+                </a>
+            </nav>
+            <div class="header-right">
+                <div class="balance">
+                    <i class="fas fa-coins"></i>
+                    <span id="balance">10000.00</span> ₽
+                </div>
+                <button class="btn btn-accent btn-sm" id="addBalanceBtn">
+                    <i class="fas fa-plus"></i> Пополнить
+                </button>
+            </div>
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-bg"></div>
+        <div class="container hero-content">
+            <h1 class="hero-title">
+                <span class="hero-sub">ОТКРЫВАЙ КЕЙСЫ</span>
+                CS2 <span class="accent">SKINS</span>
+                <span class="hero-sub">АПГРЕЙДИ СКИНЫ</span>
+            </h1>
+            <p class="hero-desc">Лучшая платформа для открытия кейсов и апгрейда скинов CS2. Испытай удачу и получи скины своей мечты!</p>
+            <div class="hero-buttons">
+                <a href="#cases" class="btn btn-primary btn-lg">
+                    <i class="fas fa-box-open"></i> Открыть кейс
+                </a>
+                <a href="#upgrade" class="btn btn-outline btn-lg">
+                    <i class="fas fa-arrow-up"></i> Апгрейд
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-value" data-count="15847">0</span>
+                    <span class="stat-label">Кейсов открыто</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" data-count="3291">0</span>
+                    <span class="stat-label">Апгрейдов</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" data-count="892">0</span>
+                    <span class="stat-label">Онлайн</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cases Section -->
+    <section id="cases" class="section cases-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-box-open"></i> Кейсы</h2>
+                <p class="section-desc">Выбери кейс и испытай удачу! Каждый кейс содержит уникальные скины.</p>
+            </div>
+            <div class="cases-grid" id="casesGrid">
+                <!-- Cases will be rendered by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Case Opening Modal -->
+    <div class="modal" id="caseModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content case-modal-content">
+            <button class="modal-close" id="closeCaseModal"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" id="caseModalTitle">Открытие кейса</h3>
+            <div class="case-opening">
+                <div class="roulette-wrapper">
+                    <div class="roulette-pointer"></div>
+                    <div class="roulette-strip" id="rouletteStrip">
+                        <!-- Roulette items will be rendered by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="case-result hidden" id="caseResult">
+                <div class="result-glow"></div>
+                <div class="result-skin" id="resultSkin">
+                    <!-- Result will be shown here -->
+                </div>
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="sellSkinBtn">
+                        <i class="fas fa-coins"></i> Продать за <span id="sellPrice">0</span> ₽
+                    </button>
+                    <button class="btn btn-outline" id="keepSkinBtn">
+                        <i class="fas fa-briefcase"></i> В инвентарь
+                    </button>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg open-case-btn" id="openCaseBtn">
+                <i class="fas fa-key"></i> Открыть за <span id="casePrice">0</span> ₽
+            </button>
+        </div>
+    </div>
+
+    <!-- Upgrade Section -->
+    <section id="upgrade" class="section upgrade-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-arrow-up"></i> Апгрейд</h2>
+                <p class="section-desc">Выбери скин из инвентаря и попробуй улучшить его до более дорогого!</p>
+            </div>
+            <div class="upgrade-container">
+                <div class="upgrade-from">
+                    <h4>Твой скин</h4>
+                    <div class="upgrade-slot" id="upgradeFrom">
+                        <div class="slot-placeholder">
+                            <i class="fas fa-plus"></i>
+                            <span>Выбери скин</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="upgrade-middle">
+                    <div class="upgrade-circle" id="upgradeCircle">
+                        <svg viewBox="0 0 200 200" class="upgrade-svg">
+                            <circle cx="100" cy="100" r="90" class="circle-bg"/>
+                            <circle cx="100" cy="100" r="90" class="circle-progress" id="circleProgress"/>
+                        </svg>
+                        <div class="upgrade-chance" id="upgradeChance">0%</div>
+                    </div>
+                    <button class="btn btn-primary btn-lg" id="upgradeBtn" disabled>
+                        <i class="fas fa-bolt"></i> Апгрейд
+                    </button>
+                </div>
+                <div class="upgrade-to">
+                    <h4>Цель</h4>
+                    <div class="upgrade-slot" id="upgradeTo">
+                        <div class="slot-placeholder">
+                            <i class="fas fa-star"></i>
+                            <span>Выбери цель</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upgrade target selection -->
+            <div class="upgrade-targets" id="upgradeTargets">
+                <h4>Доступные цели для апгрейда</h4>
+                <div class="targets-grid" id="targetsGrid">
+                    <!-- Targets rendered by JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upgrade Result Modal -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content upgrade-modal-content">
+            <div class="upgrade-animation" id="upgradeAnimation">
+                <div class="upgrade-spinner"></div>
+            </div>
+            <div class="upgrade-result hidden" id="upgradeResult">
+                <h3 id="upgradeResultTitle"></h3>
+                <div id="upgradeResultSkin"></div>
+                <button class="btn btn-primary" id="upgradeResultClose">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Section -->
+    <section id="inventory" class="section inventory-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-briefcase"></i> Инвентарь</h2>
+                <p class="section-desc">Твои скины. Продавай или используй для апгрейда.</p>
+            </div>
+            <div class="inventory-controls">
+                <div class="inventory-sort">
+                    <button class="btn btn-sm btn-outline active" data-sort="all">Все</button>
+                    <button class="btn btn-sm btn-outline" data-sort="covert">Тайное</button>
+                    <button class="btn btn-sm btn-outline" data-sort="classified">Засекреченное</button>
+                    <button class="btn btn-sm btn-outline" data-sort="restricted">Запрещённое</button>
+                    <button class="btn btn-sm btn-outline" data-sort="milspec">Армейское</button>
+                </div>
+                <button class="btn btn-sm btn-accent" id="sellAllBtn">
+                    <i class="fas fa-coins"></i> Продать всё
+                </button>
+            </div>
+            <div class="inventory-grid" id="inventoryGrid">
+                <div class="inventory-empty">
+                    <i class="fas fa-box-open"></i>
+                    <p>Инвентарь пуст. Открой кейс!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-logo">
+                <i class="fas fa-crosshairs"></i>
+                CS2<span class="accent">SKINS</span>
+            </div>
+            <p class="footer-text">© 2024 CS2SKINS. Все скины являются виртуальными и не имеют реальной ценности. Демо-проект.</p>
+            <div class="footer-links">
+                <a href="#">Правила</a>
+                <a href="#">Поддержка</a>
+                <a href="#">FAQ</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Notification Container -->
+    <div id="notifications"></div>
+
+    <!-- Select Skin Modal (for upgrade) -->
+    <div class="modal" id="selectSkinModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content select-skin-modal">
+            <button class="modal-close" id="closeSelectSkin"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title">Выбери скин из инвентаря</h3>
+            <div class="select-skin-grid" id="selectSkinGrid">
+                <!-- Skins rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/cases.js"></script>
+    <script src="js/upgrade.js"></script>
+    <script src="js/particles.js"></script>
+</body>
+</html>

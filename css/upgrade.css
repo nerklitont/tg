@@ -1,0 +1,297 @@
+/* ===== Upgrade Section ===== */
+.upgrade-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 48px;
+}
+
+.upgrade-from,
+.upgrade-to {
+    flex: 1;
+    max-width: 300px;
+    text-align: center;
+}
+
+.upgrade-from h4,
+.upgrade-to h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.upgrade-slot {
+    background: var(--bg-card);
+    border: 2px dashed var(--border-hover);
+    border-radius: var(--radius);
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.upgrade-slot:hover {
+    border-color: var(--primary);
+    background: var(--bg-card-hover);
+}
+
+.upgrade-slot.has-skin {
+    border-style: solid;
+}
+
+.slot-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.slot-placeholder i {
+    font-size: 36px;
+}
+
+.slot-placeholder span {
+    font-size: 14px;
+}
+
+.upgrade-slot .slot-skin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+}
+
+.upgrade-slot .slot-skin-icon {
+    font-size: 56px;
+}
+
+.upgrade-slot .slot-skin-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.upgrade-slot .slot-skin-weapon {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.upgrade-slot .slot-skin-price {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+}
+
+/* ===== Upgrade Circle ===== */
+.upgrade-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.upgrade-circle {
+    position: relative;
+    width: 180px;
+    height: 180px;
+}
+
+.upgrade-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.circle-bg {
+    fill: none;
+    stroke: var(--bg-card);
+    stroke-width: 8;
+}
+
+.circle-progress {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 565.48;
+    transition: stroke-dashoffset 0.8s ease, stroke 0.3s ease;
+    filter: drop-shadow(0 0 8px var(--primary-glow));
+}
+
+.upgrade-chance {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* ===== Upgrade Targets ===== */
+.upgrade-targets {
+    margin-top: 40px;
+}
+
+.upgrade-targets h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.targets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.target-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.target-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow);
+}
+
+.target-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.target-card-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.target-card-name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.target-card-weapon {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.target-card-price {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+}
+
+/* ===== Upgrade Animation ===== */
+.upgrade-modal-content {
+    max-width: 500px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.upgrade-animation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.upgrade-spinner {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid var(--bg-card);
+    border-top-color: var(--primary);
+    border-right-color: var(--accent);
+    animation: upgradeSpin 1s linear infinite;
+    position: relative;
+}
+
+.upgrade-spinner::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-card);
+    border-bottom-color: var(--primary);
+    animation: upgradeSpin 0.6s linear reverse infinite;
+}
+
+@keyframes upgradeSpin {
+    to { transform: rotate(360deg); }
+}
+
+.upgrade-result {
+    text-align: center;
+    animation: resultPop 0.5s ease;
+}
+
+.upgrade-result h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.upgrade-result .result-success {
+    color: var(--success);
+}
+
+.upgrade-result .result-fail {
+    color: var(--danger);
+}
+
+.upgrade-result #upgradeResultSkin {
+    margin-bottom: 24px;
+}
+
+.upgrade-result .won-skin-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.upgrade-result .won-skin-display .skin-big-icon {
+    font-size: 64px;
+}
+
+.upgrade-result .won-skin-display .skin-big-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.upgrade-result .won-skin-display .skin-big-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    color: var(--accent);
+}
+
+/* ===== Upgrade chance colors ===== */
+.chance-high .circle-progress { stroke: var(--success); filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4)); }
+.chance-mid .circle-progress { stroke: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
+.chance-low .circle-progress { stroke: var(--danger); filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4)); }
