@@ -24,7 +24,6 @@ const CaseOpener = {
         this.buildRoulette();
         modal.classList.add('active');
 
-        // Bind events
         openBtn.onclick = () => this.spin();
         document.getElementById('closeCaseModal').onclick = () => {
             if (!this.isSpinning) modal.classList.remove('active');
@@ -35,7 +34,6 @@ const CaseOpener = {
         const strip = document.getElementById('rouletteStrip');
         const items = [];
 
-        // Generate 60 items for the roulette
         for (let i = 0; i < 60; i++) {
             const skin = this.getRandomSkin();
             items.push(skin);
@@ -43,7 +41,9 @@ const CaseOpener = {
 
         strip.innerHTML = items.map(skin => `
             <div class="roulette-item" data-rarity="${skin.rarity}">
-                <div class="roulette-item-icon">${getSkinIcon(skin)}</div>
+                <div class="roulette-item-icon">
+                    ${getSkinImageTag(skin, 'roulette-img')}
+                </div>
                 <div class="roulette-item-name">${skin.name}</div>
                 <div class="roulette-item-price">${skin.price} ₽</div>
             </div>
@@ -76,7 +76,6 @@ const CaseOpener = {
             return raritySkins[Math.floor(Math.random() * raritySkins.length)];
         }
 
-        // Fallback
         return caseSkins[Math.floor(Math.random() * caseSkins.length)];
     },
 
@@ -93,10 +92,8 @@ const CaseOpener = {
         const openBtn = document.getElementById('openCaseBtn');
         openBtn.disabled = true;
 
-        // Determine the winning skin
         this.wonSkin = this.getRandomSkin();
 
-        // Place the winning skin at position 52 (near the end visible in center)
         const winIndex = 52;
         if (this._rouletteItems) {
             this._rouletteItems[winIndex] = this.wonSkin;
@@ -104,31 +101,26 @@ const CaseOpener = {
             const items = strip.children;
             if (items[winIndex]) {
                 items[winIndex].setAttribute('data-rarity', this.wonSkin.rarity);
-                items[winIndex].querySelector('.roulette-item-icon').textContent = getSkinIcon(this.wonSkin);
+                items[winIndex].querySelector('.roulette-item-icon').innerHTML = getSkinImageTag(this.wonSkin, 'roulette-img');
                 items[winIndex].querySelector('.roulette-item-name').textContent = this.wonSkin.name;
                 items[winIndex].querySelector('.roulette-item-price').textContent = this.wonSkin.price + ' ₽';
             }
         }
 
-        // Calculate offset to land on winning item
         const itemWidth = 160;
         const wrapper = document.querySelector('.roulette-wrapper');
         const wrapperCenter = wrapper.offsetWidth / 2;
         const targetOffset = -(winIndex * itemWidth - wrapperCenter + itemWidth / 2);
-
-        // Add slight randomness within the item
         const randomOffset = (Math.random() - 0.5) * (itemWidth * 0.6);
         const finalOffset = targetOffset + randomOffset;
 
         const strip = document.getElementById('rouletteStrip');
 
-        // Apply animation
         requestAnimationFrame(() => {
             strip.style.transition = 'transform 5s cubic-bezier(0.15, 0.8, 0.3, 1)';
             strip.style.transform = `translateX(${finalOffset}px)`;
         });
 
-        // Show result after animation
         setTimeout(() => {
             this.showResult();
         }, 5200);
@@ -144,7 +136,7 @@ const CaseOpener = {
 
         resultSkin.innerHTML = `
             <div class="skin-won">
-                <div class="skin-won-icon">${getSkinIcon(skin)}</div>
+                <div class="skin-won-icon">${getSkinImageTag(skin, 'skin-won-img')}</div>
                 <div class="skin-won-name" style="color: ${getRarityColor(skin.rarity)}">${skin.name}</div>
                 <div class="skin-won-weapon">${skin.weapon}</div>
                 <div class="skin-won-price">${skin.price} ₽</div>
@@ -156,20 +148,17 @@ const CaseOpener = {
         result.classList.remove('hidden');
         openBtn.classList.add('hidden');
 
-        // Confetti for rare skins
         const rarityIndex = RARITY_ORDER.indexOf(skin.rarity);
         if (rarityIndex >= 4) {
             App.createConfetti();
         }
 
-        // Sell button
         document.getElementById('sellSkinBtn').onclick = () => {
             App.addBalance(skin.price);
             App.notify(`${skin.weapon} | ${skin.name} продан за ${skin.price} ₽`, 'success');
             this.resetModal();
         };
 
-        // Keep button
         document.getElementById('keepSkinBtn').onclick = () => {
             App.addToInventory(skin);
             App.notify(`${skin.weapon} | ${skin.name} добавлен в инвентарь`, 'info');

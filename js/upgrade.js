@@ -31,7 +31,7 @@ const Upgrader = {
         grid.innerHTML = sorted.map(skin => `
             <div class="skin-card" data-rarity="${skin.rarity}" data-uid="${skin.uid}">
                 <div class="skin-card-image">
-                    <span class="skin-icon">${getSkinIcon(skin)}</span>
+                    ${getSkinImageTag(skin, 'skin-img-card')}
                 </div>
                 <div class="skin-card-info">
                     <div class="skin-card-name">${skin.name}</div>
@@ -61,7 +61,7 @@ const Upgrader = {
         slot.classList.add('has-skin');
         slot.innerHTML = `
             <div class="slot-skin">
-                <div class="slot-skin-icon">${getSkinIcon(skin)}</div>
+                <div class="slot-skin-icon">${getSkinImageTag(skin, 'slot-skin-img')}</div>
                 <div class="slot-skin-name" style="color: ${getRarityColor(skin.rarity)}">${skin.name}</div>
                 <div class="slot-skin-weapon">${skin.weapon}</div>
                 <div class="slot-skin-price">${skin.price} ₽</div>
@@ -84,7 +84,7 @@ const Upgrader = {
 
         grid.innerHTML = targets.map(skin => `
             <div class="target-card ${this.targetSkin && this.targetSkin.id === skin.id ? 'selected' : ''}" data-skin-id="${skin.id}">
-                <div class="target-card-icon">${getSkinIcon(skin)}</div>
+                <div class="target-card-icon">${getSkinImageTag(skin, 'target-img')}</div>
                 <div class="target-card-name" style="color: ${getRarityColor(skin.rarity)}">${skin.name}</div>
                 <div class="target-card-weapon">${skin.weapon}</div>
                 <div class="target-card-price">${skin.price} ₽</div>
@@ -111,7 +111,7 @@ const Upgrader = {
         slot.classList.add('has-skin');
         slot.innerHTML = `
             <div class="slot-skin">
-                <div class="slot-skin-icon">${getSkinIcon(skin)}</div>
+                <div class="slot-skin-icon">${getSkinImageTag(skin, 'slot-skin-img')}</div>
                 <div class="slot-skin-name" style="color: ${getRarityColor(skin.rarity)}">${skin.name}</div>
                 <div class="slot-skin-weapon">${skin.weapon}</div>
                 <div class="slot-skin-price">${skin.price} ₽</div>
@@ -140,12 +140,10 @@ const Upgrader = {
 
         chanceEl.textContent = roundedChance + '%';
 
-        // Update circle
         const circumference = 565.48;
         const offset = circumference - (chance / 100) * circumference;
         progressEl.style.strokeDashoffset = offset;
 
-        // Color based on chance
         circleEl.className = 'upgrade-circle';
         if (chance >= 50) {
             circleEl.classList.add('chance-high');
@@ -164,10 +162,8 @@ const Upgrader = {
         const chance = Math.min(95, Math.max(1, (this.selectedSkin.price / this.targetSkin.price) * 100));
         const won = Math.random() * 100 <= chance;
 
-        // Remove selected skin from inventory
         App.removeFromInventory(this.selectedSkin.uid);
 
-        // Show animation
         const modal = document.getElementById('upgradeModal');
         const animation = document.getElementById('upgradeAnimation');
         const result = document.getElementById('upgradeResult');
@@ -193,7 +189,7 @@ const Upgrader = {
 
                 skinEl.innerHTML = `
                     <div class="won-skin-display">
-                        <div class="skin-big-icon">${getSkinIcon(wonSkin)}</div>
+                        <div class="skin-big-icon">${getSkinImageTag(wonSkin, 'skin-big-img')}</div>
                         <div class="skin-big-name" style="color: ${getRarityColor(wonSkin.rarity)}">${wonSkin.name}</div>
                         <div>${wonSkin.weapon}</div>
                         <div class="skin-big-price">${wonSkin.price} ₽</div>
@@ -216,7 +212,6 @@ const Upgrader = {
                 App.notify('Апгрейд не удался. Скин потерян.', 'error');
             }
 
-            // Reset
             this.selectedSkin = null;
             this.targetSkin = null;
             this.resetSlots();
@@ -244,7 +239,6 @@ const Upgrader = {
             </div>
         `;
 
-        // Re-bind click
         fromSlot.addEventListener('click', () => this.openSkinSelect());
 
         this.updateChance();

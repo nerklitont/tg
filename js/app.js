@@ -3,10 +3,20 @@
 const App = {
     balance: 10000,
     inventory: [],
+    withdrawAvailable: false,
 
-    init() {
+    async init() {
         this.loadState();
         this.bindEvents();
+
+        // Try to load real data from API
+        const apiLoaded = await loadSkinsFromAPI();
+        if (apiLoaded) {
+            console.log('Real skin data loaded from API');
+        }
+
+        this.withdrawAvailable = await checkWithdrawAvailable();
+
         this.renderCases();
         this.renderInventory();
         this.updateBalance();
@@ -86,17 +96,14 @@ const App = {
     },
 
     bindEvents() {
-        // Mobile toggle
         document.getElementById('mobileToggle').addEventListener('click', () => {
             document.querySelector('.nav').classList.toggle('open');
         });
 
-        // Add balance
         document.getElementById('addBalanceBtn').addEventListener('click', () => {
             this.addBalance(5000);
         });
 
-        // Sell all
         document.getElementById('sellAllBtn').addEventListener('click', () => {
             if (this.inventory.length === 0) {
                 this.notify('Инвентарь пуст', 'warning');
@@ -105,13 +112,11 @@ const App = {
             this.sellAll();
         });
 
-        // Header scroll
         window.addEventListener('scroll', () => {
             const header = document.querySelector('.header');
             header.classList.toggle('scrolled', window.scrollY > 50);
         });
 
-        // Inventory sort
         document.querySelectorAll('[data-sort]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
@@ -120,14 +125,12 @@ const App = {
             });
         });
 
-        // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', () => {
                 overlay.closest('.modal').classList.remove('active');
             });
         });
 
-        // Smooth scroll nav
         document.querySelectorAll('.nav-link, .hero-buttons .btn').forEach(link => {
             link.addEventListener('click', (e) => {
                 const href = link.getAttribute('href');
@@ -165,7 +168,6 @@ const App = {
             `;
         }).join('');
 
-        // Bind click events
         grid.querySelectorAll('.case-card').forEach(card => {
             card.addEventListener('click', () => {
                 const caseId = parseInt(card.dataset.caseId);
@@ -197,23 +199,66 @@ const App = {
         grid.innerHTML = items.map(skin => `
             <div class="skin-card" data-rarity="${skin.rarity}" data-uid="${skin.uid}">
                 <div class="skin-card-image">
-                    <span class="skin-icon">${getSkinIcon(skin)}</span>
+                    ${getSkinImageTag(skin, 'skin-img-card')}
                 </div>
                 <div class="skin-card-info">
                     <div class="skin-card-name">${skin.name}</div>
                     <div class="skin-card-weapon">${skin.weapon}</div>
                     <div class="skin-card-price">${skin.price} ₽</div>
                     <span class="skin-card-rarity rarity-${skin.rarity}">${getRarityName(skin.rarity)}</span>
+                    <div class="skin-card-actions">
+                        <button class="btn btn-sm btn-accent sell-btn" data-uid="${skin.uid}">
+                            <i class="fas fa-coins"></i> Продать
+                        </button>
+                        ${this.withdrawAvailable ? `
+                        <button class="btn btn-sm btn-primary withdraw-btn" data-uid="${skin.uid}" data-mhn="${skin.market_hash_name || ''}">
+                            <i class="fas fa-download"></i> Вывести
+                        </button>` : ''}
+                    </div>
                 </div>
             </div>
         `).join('');
 
-        // Bind sell click
-        grid.querySelectorAll('.skin-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const uid = parseFloat(card.dataset.uid);
+        grid.querySelectorAll('.sell-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const uid = parseFloat(btn.dataset.uid);
                 this.sellSkin(uid);
             });
+        });
+
+        grid.querySelectorAll('.withdraw-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const uid = parseFloat(btn.dataset.uid);
+                this.showWithdrawModal(uid);
+            });
+        });
+    },
+
+    showWithdrawModal(uid) {
+        const skin = this.inventory.find(s => s.uid === uid);
+        if (!skin) return;
+
+        const tradeToken = prompt('Введи свой Trade Token (из настроек Steam):');
+        const partner = prompt('Введи свой Partner ID (Steam):');
+
+        if (!tradeToken || !partner) {
+            this.notify('Для вывода нужен Trade Token и Partner ID', 'warning');
+            return;
+        }
+
+        this.notify('Отправляем запрос на вывод...', 'info');
+
+        requestWithdraw(skin, tradeToken, partner).then(result => {
+            if (result.success) {
+                this.removeFromInventory(uid);
+                this.notify(`${skin.weapon} | ${skin.name} — запрос на вывод отправлен!`, 'success');
+            } else {
+                this.notify(`Ошибка вывода: ${result.detail || result.error || 'неизвестная ошибка'}`, 'error');
+            }
+        }).catch(err => {
+            this.notify(`Ошибка вывода: ${err.message}`, 'error');
         });
     },
 
@@ -321,5 +366,4 @@ const App = {
     }
 };
 
-// Init on DOM ready
 document.addEventListener('DOMContentLoaded', () => App.init());
