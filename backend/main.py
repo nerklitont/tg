@@ -3,17 +3,22 @@
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 import market_api
+import database as db
+from auth import (
+    hash_password, verify_password, create_access_token,
+    get_current_user, get_optional_user,
+)
 from config import MARKET_API_KEY, STEAM_CDN_IMAGE_URL
-from skins_data import ALL_SKINS, CASES, RARITY_NAMES_RU, RARITY_ORDER
+from skins_data import ALL_SKINS, CASES, RARITY_NAMES_RU
 
-app = FastAPI(title="CS2 Skins API", version="1.0.0")
+app = FastAPI(title="CS2 Skins API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,13 +31,16 @@ app.add_middleware(
 FRONTEND_DIR = Path(__file__).parent.parent
 
 
+@app.on_event("startup")
+def startup():
+    db.init_db()
+
+
 def build_image_url(market_hash_name: str) -> str:
-    """Build Steam CDN image URL for a skin."""
     return f"{STEAM_CDN_IMAGE_URL}/{market_hash_name}"
 
 
 def enrich_skin(skin: dict, prices: dict | None = None) -> dict:
-    """Add image URL and real price to skin data."""
     mhn = skin["market_hash_name"]
     result = {
         **skin,
@@ -48,24 +56,177 @@ def enrich_skin(skin: dict, prices: dict | None = None) -> dict:
     return result
 
 
-# ──────────────────────────── API Routes ────────────────────────────
+def safe_user(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "email": user["email"],
+        "balance": user["balance"],
+        "trade_token": user.get("trade_token", ""),
+        "steam_partner": user.get("steam_partner", ""),
+        "created_at": user.get("created_at", ""),
+    }
 
+
+# ──────────────────────────── Auth Routes ────────────────────────────
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=32)
+    email: str
+    password: str = Field(min_length=6)
+
+
+class LoginRequest(BaseModel):
+    login: str  # username or email
+    password: str
+
+
+@app.post("/api/auth/register")
+async def register(req: RegisterRequest):
+    if db.get_user_by_username(req.username):
+        raise HTTPException(status_code=400, detail="Имя пользователя уже занято")
+    if db.get_user_by_email(req.email):
+        raise HTTPException(status_code=400, detail="Email уже используется")
+
+    pw_hash = hash_password(req.password)
+    user = db.create_user(req.username, req.email, pw_hash)
+    if not user:
+        raise HTTPException(status_code=500, detail="Ошибка создания аккаунта")
+
+    token = create_access_token(user["id"], user["username"])
+    return {
+        "success": True,
+        "token": token,
+        "user": safe_user(user),
+    }
+
+
+@app.post("/api/auth/login")
+async def login(req: LoginRequest):
+    user = db.get_user_by_username(req.login) or db.get_user_by_email(req.login)
+    if not user or not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Неверный логин или пароль")
+
+    token = create_access_token(user["id"], user["username"])
+    return {
+        "success": True,
+        "token": token,
+        "user": safe_user(user),
+    }
+
+
+@app.get("/api/auth/me")
+async def get_me(user: dict = Depends(get_current_user)):
+    inventory = db.get_inventory(user["id"])
+    return {
+        "success": True,
+        "user": safe_user(user),
+        "inventory_count": len(inventory),
+    }
+
+
+# ──────────────── User Balance & Inventory ────────────────
+
+@app.get("/api/user/balance")
+async def get_user_balance(user: dict = Depends(get_current_user)):
+    return {"success": True, "balance": user["balance"]}
+
+
+@app.post("/api/user/add-balance")
+async def add_balance(user: dict = Depends(get_current_user)):
+    new_balance = db.update_balance(user["id"], 5000, "Пополнение баланса")
+    return {"success": True, "balance": new_balance}
+
+
+@app.get("/api/user/inventory")
+async def get_user_inventory(user: dict = Depends(get_current_user)):
+    items = db.get_inventory(user["id"])
+    for item in items:
+        item["image"] = build_image_url(item.get("market_hash_name", ""))
+    return {"success": True, "items": items, "count": len(items)}
+
+
+class AddToInventoryRequest(BaseModel):
+    skin_id: int
+    market_hash_name: str = ""
+    name: str
+    weapon: str
+    rarity: str
+    price: float
+
+
+@app.post("/api/user/inventory/add")
+async def add_inventory_item(req: AddToInventoryRequest, user: dict = Depends(get_current_user)):
+    skin = {
+        "id": req.skin_id,
+        "market_hash_name": req.market_hash_name,
+        "name": req.name,
+        "weapon": req.weapon,
+        "rarity": req.rarity,
+        "price": req.price,
+    }
+    inv_id = db.add_to_inventory(user["id"], skin)
+    return {"success": True, "inventory_id": inv_id}
+
+
+@app.post("/api/user/inventory/sell/{inv_id}")
+async def sell_inventory_item(inv_id: int, user: dict = Depends(get_current_user)):
+    result = db.sell_skin(user["id"], inv_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Предмет не найден")
+    return {"success": True, **result}
+
+
+@app.post("/api/user/inventory/sell-all")
+async def sell_all_items(user: dict = Depends(get_current_user)):
+    result = db.sell_all(user["id"])
+    return {"success": True, **result}
+
+
+class SpendBalanceRequest(BaseModel):
+    amount: float
+    description: str = ""
+
+
+@app.post("/api/user/spend")
+async def spend_balance(req: SpendBalanceRequest, user: dict = Depends(get_current_user)):
+    if user["balance"] < req.amount:
+        raise HTTPException(status_code=400, detail="Недостаточно средств")
+    new_balance = db.update_balance(user["id"], -req.amount, req.description)
+    return {"success": True, "balance": new_balance}
+
+
+class TradeInfoRequest(BaseModel):
+    trade_token: str
+    steam_partner: str
+
+
+@app.post("/api/user/trade-info")
+async def update_trade_info(req: TradeInfoRequest, user: dict = Depends(get_current_user)):
+    db.update_trade_info(user["id"], req.trade_token, req.steam_partner)
+    return {"success": True}
+
+
+@app.get("/api/user/history")
+async def get_history(user: dict = Depends(get_current_user)):
+    txs = db.get_transactions(user["id"])
+    return {"success": True, "transactions": txs}
+
+
+# ──────────────────────────── Skins & Cases ────────────────────────────
 
 @app.get("/api/skins")
 async def get_skins():
-    """Return all skins with images and real prices from market.csgo.com."""
     try:
         prices = await market_api.fetch_prices()
     except Exception:
         prices = {}
-
     skins = [enrich_skin(s, prices) for s in ALL_SKINS]
     return {"success": True, "skins": skins, "has_prices": bool(prices)}
 
 
 @app.get("/api/cases")
 async def get_cases():
-    """Return all available cases."""
     try:
         prices = await market_api.fetch_prices()
     except Exception:
@@ -78,18 +239,12 @@ async def get_cases():
             skin = next((s for s in ALL_SKINS if s["id"] == sid), None)
             if skin:
                 case_skins.append(enrich_skin(skin, prices))
-
-        cases_out.append({
-            **case,
-            "skin_details": case_skins,
-        })
-
+        cases_out.append({**case, "skin_details": case_skins})
     return {"success": True, "cases": cases_out, "has_prices": bool(prices)}
 
 
 @app.get("/api/prices")
 async def get_prices():
-    """Get current prices from market.csgo.com."""
     try:
         prices = await market_api.fetch_prices()
         return {"success": True, "prices": prices, "count": len(prices)}
@@ -99,39 +254,32 @@ async def get_prices():
 
 @app.get("/api/status")
 async def get_status():
-    """Check API status and whether market key is configured."""
     has_key = bool(MARKET_API_KEY)
-    balance = None
-    if has_key:
-        try:
-            balance = await market_api.get_balance()
-        except Exception:
-            pass
-
     return {
         "success": True,
         "api_key_configured": has_key,
-        "balance": balance,
         "skins_count": len(ALL_SKINS),
         "cases_count": len(CASES),
     }
 
 
+# ──────────────────────────── Withdrawal ────────────────────────────
+
 class WithdrawRequest(BaseModel):
     market_hash_name: str
     max_price: int
-    trade_token: str
-    partner: str
+    inv_id: int = 0
 
 
 @app.post("/api/withdraw")
-async def withdraw_skin(req: WithdrawRequest):
-    """
-    Buy a skin from market.csgo.com and send to user's Steam account.
-    Requires MARKET_CSGO_API_KEY to be configured.
-    """
+async def withdraw_skin(req: WithdrawRequest, user: dict = Depends(get_current_user)):
     if not MARKET_API_KEY:
         raise HTTPException(status_code=503, detail="API key not configured. Withdrawal is disabled.")
+
+    trade_token = user.get("trade_token", "")
+    partner = user.get("steam_partner", "")
+    if not trade_token or not partner:
+        raise HTTPException(status_code=400, detail="Укажите Trade Token и Partner ID в настройках профиля")
 
     custom_id = f"cs2skins-{uuid.uuid4().hex[:12]}"
 
@@ -139,41 +287,25 @@ async def withdraw_skin(req: WithdrawRequest):
         result = await market_api.buy_item_for_user(
             market_hash_name=req.market_hash_name,
             max_price=req.max_price,
-            trade_token=req.trade_token,
-            partner=req.partner,
+            trade_token=trade_token,
+            partner=partner,
             custom_id=custom_id,
         )
-        return {
-            "success": result.get("success", False),
-            "custom_id": custom_id,
-            "data": result,
-        }
+
+        if result.get("success") and req.inv_id:
+            db.remove_from_inventory(user["id"], req.inv_id)
+
+        return {"success": result.get("success", False), "custom_id": custom_id, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/withdraw/status/{custom_id}")
-async def withdraw_status(custom_id: str):
-    """Check withdrawal status."""
+async def withdraw_status(custom_id: str, user: dict = Depends(get_current_user)):
     if not MARKET_API_KEY:
         raise HTTPException(status_code=503, detail="API key not configured.")
-
     try:
-        result = await market_api.get_buy_status(custom_id)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/search/{market_hash_name}")
-async def search_item(market_hash_name: str):
-    """Search for available listings of a specific item."""
-    if not MARKET_API_KEY:
-        raise HTTPException(status_code=503, detail="API key not configured.")
-
-    try:
-        result = await market_api.search_item(market_hash_name)
-        return result
+        return await market_api.get_buy_status(custom_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

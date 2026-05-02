@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/cases.css">
     <link rel="stylesheet" href="css/upgrade.css">
     <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
     <!-- Particles Background -->
@@ -46,6 +47,25 @@
                 <button class="btn btn-accent btn-sm" id="addBalanceBtn">
                     <i class="fas fa-plus"></i> Пополнить
                 </button>
+                <!-- Guest buttons -->
+                <div id="guestButtons">
+                    <button class="btn btn-primary btn-sm" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                    <button class="btn btn-outline btn-sm" id="registerBtn">
+                        <i class="fas fa-user-plus"></i> Регистрация
+                    </button>
+                </div>
+                <!-- User menu -->
+                <div id="userMenu" class="hidden">
+                    <div class="user-info">
+                        <div class="user-avatar"><i class="fas fa-user"></i></div>
+                        <span id="userName"></span>
+                    </div>
+                    <button class="btn btn-outline btn-sm" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
             </div>
             <button class="mobile-toggle" id="mobileToggle">
                 <i class="fas fa-bars"></i>
@@ -244,6 +264,66 @@
         </div>
     </footer>
 
+    <!-- Auth Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content auth-modal">
+            <button class="modal-close" id="closeAuthModal"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title">CS2<span class="accent">SKINS</span></h3>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Вход</button>
+                <button class="auth-tab" data-tab="register">Регистрация</button>
+            </div>
+            <div id="authError" class="auth-error"></div>
+            <!-- Login Form -->
+            <div id="loginForm">
+                <form class="auth-form" id="loginFormEl">
+                    <div class="form-group">
+                        <label>Логин или Email</label>
+                        <input type="text" class="form-input" id="loginInput" placeholder="Введите логин или email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="Введите пароль" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    Нет аккаунта? <a class="auth-tab-link" data-tab="register">Зарегистрируйся</a>
+                </div>
+            </div>
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <form class="auth-form" id="registerFormEl">
+                    <div class="form-group">
+                        <label>Имя пользователя</label>
+                        <input type="text" class="form-input" id="regUsername" placeholder="От 3 символов" minlength="3" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" id="regEmail" placeholder="example@mail.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" class="form-input" id="regPassword" placeholder="Минимум 6 символов" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Повторите пароль</label>
+                        <input type="password" class="form-input" id="regPassword2" placeholder="Повторите пароль" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit">
+                        <i class="fas fa-user-plus"></i> Создать аккаунт
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    Уже есть аккаунт? <a class="auth-tab-link" data-tab="login">Войти</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Container -->
     <div id="notifications"></div>
 
@@ -261,6 +341,7 @@
 
     <script src="js/data.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/cases.js"></script>
     <script src="js/upgrade.js"></script>
     <script src="js/particles.js"></script>

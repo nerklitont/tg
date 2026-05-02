@@ -9,11 +9,8 @@ const App = {
         this.loadState();
         this.bindEvents();
 
-        // Try to load real data from API
         const apiLoaded = await loadSkinsFromAPI();
-        if (apiLoaded) {
-            console.log('Real skin data loaded from API');
-        }
+        if (apiLoaded) console.log('Real skin data loaded from API');
 
         this.withdrawAvailable = await checkWithdrawAvailable();
 
@@ -39,6 +36,7 @@ const App = {
     },
 
     saveState() {
+        if (Auth.isLoggedIn()) return; // server handles state
         localStorage.setItem('cs2skins_state', JSON.stringify({
             balance: this.balance,
             inventory: this.inventory
@@ -50,49 +48,140 @@ const App = {
         this.saveState();
     },
 
-    addBalance(amount) {
-        this.balance += amount;
-        this.updateBalance();
-        this.notify(`Баланс пополнен на ${amount} ₽`, 'success');
+    async addBalance(amount) {
+        if (Auth.isLoggedIn()) {
+            try {
+                const resp = await Auth.apiCall('/api/user/add-balance', 'POST');
+                this.balance = resp.balance;
+                this.updateBalance();
+                this.notify(`Баланс пополнен на ${amount} ₽`, 'success');
+            } catch (e) {
+                this.notify('Ошибка пополнения: ' + e.message, 'error');
+            }
+        } else {
+            this.balance += amount;
+            this.updateBalance();
+            this.notify(`Баланс пополнен на ${amount} ₽`, 'success');
+        }
     },
 
-    subtractBalance(amount) {
+    async subtractBalance(amount) {
         if (this.balance < amount) return false;
-        this.balance -= amount;
-        this.updateBalance();
-        return true;
+        if (Auth.isLoggedIn()) {
+            try {
+                const resp = await Auth.apiCall('/api/user/spend', 'POST', {
+                    amount: amount,
+                    description: 'Открытие кейса',
+                });
+                this.balance = resp.balance;
+                this.updateBalance();
+                return true;
+            } catch (e) {
+                this.notify('Ошибка: ' + e.message, 'error');
+                return false;
+            }
+        } else {
+            this.balance -= amount;
+            this.updateBalance();
+            return true;
+        }
     },
 
-    addToInventory(skin) {
-        const invItem = { ...skin, uid: Date.now() + Math.random() };
-        this.inventory.push(invItem);
+    async addToInventory(skin) {
+        if (Auth.isLoggedIn()) {
+            try {
+                const resp = await Auth.apiCall('/api/user/inventory/add', 'POST', {
+                    skin_id: skin.id,
+                    market_hash_name: skin.market_hash_name || '',
+                    name: skin.name,
+                    weapon: skin.weapon,
+                    rarity: skin.rarity,
+                    price: skin.price,
+                });
+                const invItem = {
+                    ...skin,
+                    uid: resp.inventory_id,
+                    id: resp.inventory_id,
+                    image: getSkinImage(skin),
+                };
+                this.inventory.push(invItem);
+                this.renderInventory();
+                return invItem;
+            } catch (e) {
+                this.notify('Ошибка добавления в инвентарь: ' + e.message, 'error');
+                return null;
+            }
+        } else {
+            const invItem = { ...skin, uid: Date.now() + Math.random() };
+            this.inventory.push(invItem);
+            this.saveState();
+            this.renderInventory();
+            return invItem;
+        }
+    },
+
+    async removeFromInventory(uid) {
+        if (Auth.isLoggedIn()) {
+            try {
+                // uid is the inventory DB id when logged in
+                await Auth.apiCall(`/api/user/inventory/sell/${uid}`, 'POST');
+            } catch (e) {
+                console.warn('Server removal failed', e);
+            }
+        }
+        this.inventory = this.inventory.filter(item => item.uid !== uid && item.id !== uid);
         this.saveState();
         this.renderInventory();
-        return invItem;
     },
 
-    removeFromInventory(uid) {
-        this.inventory = this.inventory.filter(item => item.uid !== uid);
-        this.saveState();
-        this.renderInventory();
-    },
-
-    sellSkin(uid) {
-        const item = this.inventory.find(i => i.uid === uid);
+    async sellSkin(uid) {
+        const item = this.inventory.find(i => i.uid === uid || i.id === uid);
         if (!item) return;
-        this.addBalance(item.price);
-        this.removeFromInventory(uid);
-        this.notify(`${item.weapon} | ${item.name} продан за ${item.price} ₽`, 'success');
+
+        if (Auth.isLoggedIn()) {
+            try {
+                const resp = await Auth.apiCall(`/api/user/inventory/sell/${uid}`, 'POST');
+                this.balance = resp.new_balance;
+                this.inventory = this.inventory.filter(i => i.uid !== uid && i.id !== uid);
+                this.updateBalance();
+                this.renderInventory();
+                this.notify(`${item.weapon} | ${item.name} продан за ${item.price} ₽`, 'success');
+            } catch (e) {
+                this.notify('Ошибка продажи: ' + e.message, 'error');
+            }
+        } else {
+            this.balance += item.price;
+            this.inventory = this.inventory.filter(i => i.uid !== uid);
+            this.updateBalance();
+            this.saveState();
+            this.renderInventory();
+            this.notify(`${item.weapon} | ${item.name} продан за ${item.price} ₽`, 'success');
+        }
     },
 
-    sellAll() {
+    async sellAll() {
         if (this.inventory.length === 0) return;
-        const total = this.inventory.reduce((sum, item) => sum + item.price, 0);
-        this.addBalance(total);
-        this.inventory = [];
-        this.saveState();
-        this.renderInventory();
-        this.notify(`Все скины проданы за ${total.toFixed(2)} ₽`, 'success');
+
+        if (Auth.isLoggedIn()) {
+            try {
+                const resp = await Auth.apiCall('/api/user/inventory/sell-all', 'POST');
+                this.balance = resp.new_balance;
+                this.inventory = [];
+                this.updateBalance();
+                this.renderInventory();
+                this.notify(`Все скины проданы за ${resp.total.toFixed(2)} ₽`, 'success');
+            } catch (e) {
+                this.notify('Ошибка продажи: ' + e.message, 'error');
+            }
+        } else {
+            const total = this.inventory.reduce((sum, item) => sum + item.price, 0);
+            this.balance += total;
+            this.inventory = [];
+            this.updateBalance();
+            this.saveState();
+            this.renderInventory();
+            this.notify(`Все скины проданы за ${total.toFixed(2)} ₽`, 'success');
+        }
     },
 
     bindEvents() {
@@ -142,6 +231,14 @@ const App = {
                         document.querySelector('.nav').classList.remove('open');
                     }
                 }
+            });
+        });
+
+        // Auth footer links
+        document.querySelectorAll('.auth-tab-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const tab = link.dataset.tab;
+                Auth.showModal(tab);
             });
         });
     },
@@ -196,8 +293,10 @@ const App = {
             return;
         }
 
-        grid.innerHTML = items.map(skin => `
-            <div class="skin-card" data-rarity="${skin.rarity}" data-uid="${skin.uid}">
+        grid.innerHTML = items.map(skin => {
+            const itemUid = skin.uid || skin.id;
+            return `
+            <div class="skin-card" data-rarity="${skin.rarity}" data-uid="${itemUid}">
                 <div class="skin-card-image">
                     ${getSkinImageTag(skin, 'skin-img-card')}
                 </div>
@@ -207,17 +306,17 @@ const App = {
                     <div class="skin-card-price">${skin.price} ₽</div>
                     <span class="skin-card-rarity rarity-${skin.rarity}">${getRarityName(skin.rarity)}</span>
                     <div class="skin-card-actions">
-                        <button class="btn btn-sm btn-accent sell-btn" data-uid="${skin.uid}">
+                        <button class="btn btn-sm btn-accent sell-btn" data-uid="${itemUid}">
                             <i class="fas fa-coins"></i> Продать
                         </button>
                         ${this.withdrawAvailable ? `
-                        <button class="btn btn-sm btn-primary withdraw-btn" data-uid="${skin.uid}" data-mhn="${skin.market_hash_name || ''}">
+                        <button class="btn btn-sm btn-primary withdraw-btn" data-uid="${itemUid}" data-mhn="${skin.market_hash_name || ''}">
                             <i class="fas fa-download"></i> Вывести
                         </button>` : ''}
                     </div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
 
         grid.querySelectorAll('.sell-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -237,25 +336,33 @@ const App = {
     },
 
     showWithdrawModal(uid) {
-        const skin = this.inventory.find(s => s.uid === uid);
+        const skin = this.inventory.find(s => (s.uid || s.id) === uid);
         if (!skin) return;
 
-        const tradeToken = prompt('Введи свой Trade Token (из настроек Steam):');
-        const partner = prompt('Введи свой Partner ID (Steam):');
-
-        if (!tradeToken || !partner) {
-            this.notify('Для вывода нужен Trade Token и Partner ID', 'warning');
+        if (Auth.isLoggedIn()) {
+            if (!Auth.user.trade_token || !Auth.user.steam_partner) {
+                this.notify('Укажите Trade Token и Partner ID в настройках', 'warning');
+                return;
+            }
+        } else {
+            this.notify('Войдите в аккаунт для вывода', 'warning');
+            Auth.showModal('login');
             return;
         }
 
         this.notify('Отправляем запрос на вывод...', 'info');
 
-        requestWithdraw(skin, tradeToken, partner).then(result => {
+        Auth.apiCall('/api/withdraw', 'POST', {
+            market_hash_name: skin.market_hash_name,
+            max_price: Math.round(skin.price * 100),
+            inv_id: uid,
+        }).then(result => {
             if (result.success) {
-                this.removeFromInventory(uid);
+                this.inventory = this.inventory.filter(i => (i.uid || i.id) !== uid);
+                this.renderInventory();
                 this.notify(`${skin.weapon} | ${skin.name} — запрос на вывод отправлен!`, 'success');
             } else {
-                this.notify(`Ошибка вывода: ${result.detail || result.error || 'неизвестная ошибка'}`, 'error');
+                this.notify(`Ошибка вывода: ${result.detail || 'неизвестная ошибка'}`, 'error');
             }
         }).catch(err => {
             this.notify(`Ошибка вывода: ${err.message}`, 'error');
