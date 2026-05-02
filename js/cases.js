@@ -6,6 +6,10 @@ const CaseOpener = {
     wonSkin: null,
 
     openModal(caseId) {
+        if (!Auth.isLoggedIn()) {
+            Auth.showModal('login');
+            return;
+        }
         this.currentCase = CASES.find(c => c.id === caseId);
         if (!this.currentCase) return;
 

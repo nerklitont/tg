@@ -18,6 +18,11 @@ const Upgrader = {
     },
 
     openSkinSelect() {
+        if (!Auth.isLoggedIn()) {
+            Auth.showModal('login');
+            return;
+        }
+
         const modal = document.getElementById('selectSkinModal');
         const grid = document.getElementById('selectSkinGrid');
 

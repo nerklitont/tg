@@ -115,6 +115,16 @@
                 <h2 class="section-title"><i class="fas fa-box-open"></i> Кейсы</h2>
                 <p class="section-desc">Выбери кейс и испытай удачу! Каждый кейс содержит уникальные скины.</p>
             </div>
+            <div class="auth-required-overlay" id="casesAuthOverlay">
+                <div class="auth-overlay-content">
+                    <i class="fas fa-lock"></i>
+                    <h3>Войдите для доступа</h3>
+                    <p>Авторизуйтесь через Steam или создайте аккаунт, чтобы открывать кейсы</p>
+                    <button class="btn btn-primary" onclick="Auth.showModal('login')">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </div>
+            </div>
             <div class="cases-grid" id="casesGrid">
                 <!-- Cases will be rendered by JS -->
             </div>
@@ -161,6 +171,16 @@
             <div class="section-header">
                 <h2 class="section-title"><i class="fas fa-arrow-up"></i> Апгрейд</h2>
                 <p class="section-desc">Выбери скин из инвентаря и попробуй улучшить его до более дорогого!</p>
+            </div>
+            <div class="auth-required-overlay" id="upgradeAuthOverlay">
+                <div class="auth-overlay-content">
+                    <i class="fas fa-lock"></i>
+                    <h3>Войдите для доступа</h3>
+                    <p>Авторизуйтесь, чтобы использовать апгрейд</p>
+                    <button class="btn btn-primary" onclick="Auth.showModal('login')">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </div>
             </div>
             <div class="upgrade-container">
                 <div class="upgrade-from">
@@ -274,6 +294,13 @@
                 <button class="auth-tab active" data-tab="login">Вход</button>
                 <button class="auth-tab" data-tab="register">Регистрация</button>
             </div>
+            <!-- Steam Login -->
+            <button class="btn btn-steam" id="steamLoginBtn">
+                <i class="fab fa-steam"></i> Войти через Steam
+            </button>
+            <div class="auth-divider">
+                <span>или</span>
+            </div>
             <div id="authError" class="auth-error"></div>
             <!-- Login Form -->
             <div id="loginForm">
@@ -291,7 +318,7 @@
                     </button>
                 </form>
                 <div class="auth-footer">
-                    Нет аккаунта? <a class="auth-tab-link" data-tab="register">Зарегистрируйся</a>
+                    Нет аккаунта? <a class="auth-tab-link" data-tab="register">Зарегистрируйся</a> или <a id="steamLoginBtn2" style="cursor:pointer;color:var(--primary)">войди через Steam</a>
                 </div>
             </div>
             <!-- Register Form -->

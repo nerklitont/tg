@@ -3,20 +3,24 @@
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 import market_api
 import database as db
+import steam_auth
 from auth import (
     hash_password, verify_password, create_access_token,
     get_current_user, get_optional_user,
 )
 from config import MARKET_API_KEY, STEAM_CDN_IMAGE_URL
 from skins_data import ALL_SKINS, CASES, RARITY_NAMES_RU
+
+import os
+STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
 
 app = FastAPI(title="CS2 Skins API", version="2.0.0")
 
@@ -60,10 +64,12 @@ def safe_user(user: dict) -> dict:
     return {
         "id": user["id"],
         "username": user["username"],
-        "email": user["email"],
+        "email": user.get("email", ""),
         "balance": user["balance"],
         "trade_token": user.get("trade_token", ""),
         "steam_partner": user.get("steam_partner", ""),
+        "steam_id": user.get("steam_id", ""),
+        "steam_avatar": user.get("steam_avatar", ""),
         "created_at": user.get("created_at", ""),
     }
 
@@ -123,6 +129,44 @@ async def get_me(user: dict = Depends(get_current_user)):
         "user": safe_user(user),
         "inventory_count": len(inventory),
     }
+
+
+# ──────────────── Steam Auth ────────────────
+
+@app.get("/api/auth/steam")
+async def steam_login(request: Request):
+    """Redirect user to Steam login page."""
+    base_url = str(request.base_url).rstrip("/")
+    return_url = f"{base_url}/api/auth/steam/callback"
+    login_url = steam_auth.get_steam_login_url(return_url)
+    return {"success": True, "url": login_url}
+
+
+@app.get("/api/auth/steam/callback")
+async def steam_callback(request: Request):
+    """Handle Steam OpenID callback."""
+    params = dict(request.query_params)
+    steam_id = await steam_auth.validate_steam_login(params)
+    if not steam_id:
+        return RedirectResponse("/?auth_error=steam_validation_failed")
+
+    # Get Steam profile
+    profile = await steam_auth.get_steam_user_info(steam_id, STEAM_API_KEY)
+    username = profile.get("personaname", f"Steam_{steam_id[-4:]}")
+    avatar = profile.get("avatarfull", "")
+
+    # Find or create user
+    user = db.get_user_by_steam_id(steam_id)
+    if not user:
+        user = db.create_steam_user(steam_id, username, avatar)
+    else:
+        db.update_steam_profile(user["id"], username, avatar)
+        user = db.get_user_by_id(user["id"])
+
+    token = create_access_token(user["id"], user["username"])
+
+    # Redirect back to frontend with token
+    return RedirectResponse(f"/?token={token}")
 
 
 # ──────────────── User Balance & Inventory ────────────────

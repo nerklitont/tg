@@ -22,8 +22,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
+            email TEXT DEFAULT '',
+            password_hash TEXT DEFAULT '',
+            steam_id TEXT DEFAULT '',
+            steam_avatar TEXT DEFAULT '',
             balance REAL DEFAULT 10000.0,
             trade_token TEXT DEFAULT '',
             steam_partner TEXT DEFAULT '',
@@ -91,9 +93,52 @@ def get_user_by_username(username: str) -> dict | None:
 
 def get_user_by_email(email: str) -> dict | None:
     conn = get_db()
-    row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    row = conn.execute("SELECT * FROM users WHERE email = ? AND email != ''", (email,)).fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def get_user_by_steam_id(steam_id: str) -> dict | None:
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE steam_id = ?", (steam_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def create_steam_user(steam_id: str, username: str, avatar: str = "") -> dict | None:
+    conn = get_db()
+    # Ensure unique username
+    base_username = username
+    counter = 1
+    while True:
+        existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if not existing:
+            break
+        username = f"{base_username}_{counter}"
+        counter += 1
+
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (username, steam_id, steam_avatar) VALUES (?, ?, ?)",
+            (username, steam_id, avatar),
+        )
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return get_user_by_id(user_id)
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+
+def update_steam_profile(user_id: int, username: str, avatar: str):
+    conn = get_db()
+    conn.execute(
+        "UPDATE users SET steam_avatar = ? WHERE id = ?",
+        (avatar, user_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def update_balance(user_id: int, amount: float, description: str = "") -> float:

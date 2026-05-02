@@ -5,7 +5,17 @@ const Auth = {
     user: null,
 
     init() {
-        this.token = localStorage.getItem('cs2skins_token');
+        // Check for token in URL (Steam callback)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+        if (urlToken) {
+            this.token = urlToken;
+            localStorage.setItem('cs2skins_token', urlToken);
+            window.history.replaceState({}, '', window.location.pathname);
+        } else {
+            this.token = localStorage.getItem('cs2skins_token');
+        }
+
         const savedUser = localStorage.getItem('cs2skins_user');
         if (savedUser) {
             try {
@@ -21,21 +31,19 @@ const Auth = {
             this.checkAuth();
         } else {
             this.showGuest();
+            this.lockForGuests();
         }
     },
 
     bindEvents() {
-        // Show login/register modals
         document.getElementById('loginBtn')?.addEventListener('click', () => this.showModal('login'));
         document.getElementById('registerBtn')?.addEventListener('click', () => this.showModal('register'));
         document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
 
-        // Close auth modal
         document.getElementById('closeAuthModal')?.addEventListener('click', () => {
             document.getElementById('authModal').classList.remove('active');
         });
 
-        // Tab switching
         document.querySelectorAll('.auth-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -46,16 +54,25 @@ const Auth = {
             });
         });
 
-        // Login form
         document.getElementById('loginFormEl')?.addEventListener('submit', (e) => {
             e.preventDefault();
             this.login();
         });
 
-        // Register form
         document.getElementById('registerFormEl')?.addEventListener('submit', (e) => {
             e.preventDefault();
             this.register();
+        });
+
+        document.getElementById('steamLoginBtn')?.addEventListener('click', () => this.steamLogin());
+        document.getElementById('steamLoginBtn2')?.addEventListener('click', () => this.steamLogin());
+
+        // Auth footer links
+        document.querySelectorAll('.auth-tab-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const tab = link.dataset.tab;
+                this.showModal(tab);
+            });
         });
     },
 
@@ -68,8 +85,21 @@ const Auth = {
         });
         document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
         document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-
         document.getElementById('authError').textContent = '';
+    },
+
+    async steamLogin() {
+        try {
+            const resp = await fetch('/api/auth/steam');
+            const data = await resp.json();
+            if (data.success && data.url) {
+                window.location.href = data.url;
+            } else {
+                App.notify('Ошибка Steam авторизации', 'error');
+            }
+        } catch (e) {
+            App.notify('Ошибка подключения к серверу', 'error');
+        }
     },
 
     async login() {
@@ -141,6 +171,7 @@ const Auth = {
         localStorage.setItem('cs2skins_token', token);
         localStorage.setItem('cs2skins_user', JSON.stringify(user));
         this.showUser();
+        this.unlockForUser();
         this.syncFromServer();
     },
 
@@ -151,6 +182,7 @@ const Auth = {
                 this.user = resp.user;
                 localStorage.setItem('cs2skins_user', JSON.stringify(resp.user));
                 this.showUser();
+                this.unlockForUser();
                 this.syncFromServer();
             }
         } catch {
@@ -161,11 +193,9 @@ const Auth = {
     async syncFromServer() {
         if (!this.token || !this.user) return;
 
-        // Sync balance
         App.balance = this.user.balance;
         App.updateBalance();
 
-        // Sync inventory
         try {
             const resp = await this.apiCall('/api/user/inventory', 'GET');
             if (resp.success) {
@@ -187,9 +217,9 @@ const Auth = {
         localStorage.removeItem('cs2skins_token');
         localStorage.removeItem('cs2skins_user');
         this.showGuest();
+        this.lockForGuests();
 
-        // Reset to local mode
-        App.balance = 10000;
+        App.balance = 0;
         App.inventory = [];
         App.updateBalance();
         App.renderInventory();
@@ -200,12 +230,37 @@ const Auth = {
     showUser() {
         document.getElementById('guestButtons')?.classList.add('hidden');
         document.getElementById('userMenu')?.classList.remove('hidden');
-        document.getElementById('userName').textContent = this.user?.username || '';
+
+        const nameEl = document.getElementById('userName');
+        const avatarEl = document.querySelector('#userMenu .user-avatar');
+
+        if (this.user) {
+            nameEl.textContent = this.user.username || '';
+            if (this.user.steam_avatar && avatarEl) {
+                avatarEl.innerHTML = `<img src="${this.user.steam_avatar}" alt="" style="width:28px;height:28px;border-radius:50%">`;
+            }
+        }
     },
 
     showGuest() {
         document.getElementById('guestButtons')?.classList.remove('hidden');
         document.getElementById('userMenu')?.classList.add('hidden');
+    },
+
+    lockForGuests() {
+        document.querySelector('.balance')?.classList.add('hidden');
+        document.getElementById('addBalanceBtn')?.classList.add('hidden');
+
+        // Show auth overlay on sections
+        document.querySelectorAll('.auth-required-overlay').forEach(el => el.classList.remove('hidden'));
+    },
+
+    unlockForUser() {
+        document.querySelector('.balance')?.classList.remove('hidden');
+        document.getElementById('addBalanceBtn')?.classList.remove('hidden');
+
+        // Hide auth overlays
+        document.querySelectorAll('.auth-required-overlay').forEach(el => el.classList.add('hidden'));
     },
 
     isLoggedIn() {

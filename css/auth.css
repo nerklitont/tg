@@ -153,3 +153,93 @@
 .auth-footer a:hover {
     text-decoration: underline;
 }
+
+/* Steam Button */
+.btn-steam {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #171a21, #1b2838);
+    border: 1px solid #2a475e;
+    border-radius: var(--radius-sm);
+    color: #c7d5e0;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-steam:hover {
+    background: linear-gradient(135deg, #1b2838, #2a475e);
+    color: #fff;
+    border-color: #66c0f4;
+    box-shadow: 0 0 12px rgba(102, 192, 244, 0.3);
+}
+
+.btn-steam i {
+    font-size: 20px;
+    color: #66c0f4;
+}
+
+/* Auth Divider */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-divider span {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Auth Required Overlay */
+.auth-required-overlay {
+    position: relative;
+    z-index: 10;
+    background: rgba(10, 10, 20, 0.85);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 48px 24px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-required-overlay.hidden {
+    display: none;
+}
+
+.auth-overlay-content i {
+    font-size: 48px;
+    color: var(--primary);
+    margin-bottom: 16px;
+    display: block;
+}
+
+.auth-overlay-content h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.auth-overlay-content p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 14px;
+}
